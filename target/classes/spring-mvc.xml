@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:p="http://www.springframework.org/schema/p"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:context="http://www.springframework.org/schema/context"
+  xmlns:mvc="http://www.springframework.org/schema/mvc"
+  xmlns:task="http://www.springframework.org/schema/task" 
+  xsi:schemaLocation="
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context-3.2.xsd
+    http://www.springframework.org/schema/mvc
+    http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+    http://www.springframework.org/schema/task  
+	http://www.springframework.org/schema/task/spring-task-3.2.xsd">
+     
+    <!-- 扫描controller（controller层注入） -->
+   	<context:component-scan base-package="com.zs.controller" use-default-filters="false">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+   
+    <bean id="customObjectMapper" class="com.zs.entity.CustomObjectMapper" />
+    <!-- 在实际开发中通常都需配置 mvc:annotation-driven标签,这个标签是开启注解 -->  
+    <mvc:annotation-driven>
+    	<mvc:message-converters>  
+            <bean class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter">  
+                <property name="objectMapper" ref="customObjectMapper"></property>  
+            </bean>  
+        </mvc:message-converters>
+    </mvc:annotation-driven> 
+     
+    <!-- 内容协商管理器  -->
+    <!--1、首先检查路径扩展名（如my.pdf）；2、其次检查Parameter（如my?format=pdf）；3、检查Accept Header-->
+    <bean id="contentNegotiationManager" class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+        <!-- 扩展名至mimeType的映射,即 /user.json => application/json -->
+        <property name="favorPathExtension" value="true"/>
+        <!-- 用于开启 /userinfo/123?format=json 的支持 -->
+        <property name="favorParameter" value="true"/>
+        <property name="parameterName" value="format"/>
+        <!-- 是否忽略Accept Header -->
+        <property name="ignoreAcceptHeader" value="false"/>
+
+        <property name="mediaTypes"> <!--扩展名到MIME的映射；favorPathExtension, favorParameter是true时起作用  -->
+            <value>
+                json=application/json
+                xml=application/xml
+                html=text/html
+            </value>
+        </property>
+        <!-- 默认的content type -->
+        <property name="defaultContentType" value="text/html"/>
+    </bean>
+    
+    <!-- 拦截器 -->  
+    <mvc:interceptors>  
+        <!-- 多个拦截器，顺序执行 -->  
+        <mvc:interceptor>  
+            <mvc:mapping path="/*"/>
+            <mvc:mapping path="/*/*"/>    
+            <bean class="com.zs.interceptor.LoginInterceptor">
+            	<property name="allowUrls">  
+	                <list>  
+	                  <value>/indexN</value>
+	                  <value>/login</value>
+	                  <value>/loginOnline</value>
+	                  <value>/sendSms</value>    
+	                  <value>/forgot</value>    
+	                  <value>/logout</value>  
+	                  <value>/open/sellorder</value>  
+	                  <value>/open/sellorderP</value>  
+	                </list>  
+	            </property>
+            </bean>  
+        </mvc:interceptor>  
+    </mvc:interceptors>
+    
+    <!-- 当在web.xml 中   DispatcherServlet使用 <url-pattern>/</url-pattern> 映射时，能映射静态资源 -->
+    <mvc:default-servlet-handler />  
+    <!-- 静态资源映射 -->
+    <mvc:resources mapping="/js/**" location="/js/"/>
+    <mvc:resources mapping="/assets/**" location="/assets/"/>
+    <mvc:resources mapping="/images/**" location="/images/"/>
+
+   	<!-- 对模型视图添加前后缀 -->
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+    	 <property name="viewClass" value="org.springframework.web.servlet.view.JstlView"></property>  
+         <property name="prefix" value="/" />  
+         <property name="suffix" value=".jsp" />  
+    </bean>
+    
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+    	<!--上传文件的最大大小 -->
+        <property name="maxUploadSize" value="17367648787"></property>
+        <!-- 上传文件的编码 --> 
+       	<property name="defaultEncoding" value="UTF-8"></property> 
+    </bean>
+    
+    <!-- 扫描注解 -->
+    <task:annotation-driven />
+    <!-- 扫描注解 -->
+    <context:component-scan base-package="com.zs.scheduler"/>
+   
+   <bean id="mySocket" class="com.zs.loader.SocketServerLoader" />
+   
+</beans>
